@@ -1,3 +1,10 @@
+// Renderの自動停止（ポート未検出エラー）を防ぐためのダミーサーバー
+const http = require('http');
+http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('Bot is running\n');
+}).listen(process.env.PORT || 3000);
+
 require('dotenv').config();
 const { 
     Client, 
