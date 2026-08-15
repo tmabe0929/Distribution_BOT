@@ -202,7 +202,7 @@ client.on(Events.InteractionCreate, async interaction => {
             const sessionData = modalSessionStore.get(sessionId);
 
             if (!sessionData) {
-                await interaction.editReply({ content: '❌ モーダルの有効期限が切れました。もう一度やり連してください。' });
+                await interaction.editReply({ content: '❌ モーダルの有効期限が切れました。もう一度やり直してください。' });
                 return;
             }
 
