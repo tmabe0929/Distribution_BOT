@@ -1,9 +1,12 @@
+// ==========================================
 // Renderの自動停止（ポート未検出エラー）を防ぐためのダミーサーバー
+// ==========================================
 const http = require('http');
 http.createServer((req, res) => {
-  res.writeHead(200, { 'Content-Type': 'text/plain' });
-  res.end('Bot is running\n');
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Bot is running\n');
 }).listen(process.env.PORT || 3000);
+// ==========================================
 
 require('dotenv').config();
 const { 
@@ -46,7 +49,6 @@ function shuffle(array) {
     }
     return result;
 }
-
 // --- スラッシュコマンドの定義 ---
 const commands = [
     new SlashCommandBuilder()
@@ -89,18 +91,15 @@ client.once(Events.ClientReady, async (c) => {
         console.error(error);
     }
 });
+
 client.on(Events.InteractionCreate, async interaction => {
     // スラッシュコマンド（ChatInput）の処理
     if (interaction.isChatInputCommand()) {
         if (interaction.commandName === '分配') {
-            const eventParam = interaction.options.getString('イベント名') || '';
             const equalChoice = interaction.options.getString('均等') || 'off';
             const isEqual = equalChoice === 'on';
-            const waitDays = interaction.options.getInteger('分配待期期間') || 0;
 
             const sessionId = `dist_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-            modalSessionStore.set(sessionId, { isEqual, waitDays, eventParam });
-            setTimeout(() => modalSessionStore.delete(sessionId), 10 * 60 * 1000); // 10分後に削除
             
             const modal = new ModalBuilder()
                 .setCustomId(`distributeModal::${sessionId}`) 
@@ -112,7 +111,6 @@ client.on(Events.InteractionCreate, async interaction => {
                 .setStyle(TextInputStyle.Paragraph)
                 .setPlaceholder('PlayerA\nPlayerB\nor\nPlayerA,PlayerB')
                 .setRequired(true);
-
             const itemsInput = new TextInputBuilder()
                 .setCustomId('itemsInput')
                 .setLabel("アイテム（改行、カンマ、タブ区切り対応）")
@@ -125,7 +123,14 @@ client.on(Events.InteractionCreate, async interaction => {
                 new ActionRowBuilder().addComponents(itemsInput)
             );
 
+            // 【3秒ルール対策】Discordにモーダルを最速で返却
             await interaction.showModal(modal);
+
+            // オプション取得とストア保存はshowModalの後に実行
+            const eventParam = interaction.options.getString('イベント名') || '';
+            const waitDays = interaction.options.getInteger('分配待期期間') || 0;
+            modalSessionStore.set(sessionId, { isEqual, waitDays, eventParam });
+            setTimeout(() => modalSessionStore.delete(sessionId), 10 * 60 * 1000); // 10分後に削除
             return; 
         }
 
@@ -179,10 +184,13 @@ client.on(Events.InteractionCreate, async interaction => {
                 new ActionRowBuilder().addComponents(logInput4),
                 new ActionRowBuilder().addComponents(logInput5)
             );
+            
+            // 【3秒ルール対策】最速でモーダルを返却
             await interaction.showModal(modal);
             return; 
         }
     }
+
     // モーダル送信（ModalSubmit）の処理
     if (interaction.isModalSubmit()) {
         // --- 1. 分配モードのモーダル処理 ---
@@ -214,7 +222,6 @@ client.on(Events.InteractionCreate, async interaction => {
                 await interaction.editReply({ content: '❌ 有効なプレイヤーを入力してください。' });
                 return; 
             }
-
             const rawLines = itemsRawInput.split(/[\n]+/).map(s => s.trim()).filter(Boolean);
             const processedItems = [];
 
@@ -243,7 +250,6 @@ client.on(Events.InteractionCreate, async interaction => {
                 let amount = 1;
 
                 const matchResult = line.match(/^([\s\S]*?)(?:\t+|[\sXx\*_\[\]\t]+)([\d,]+)(?:[\s\*_\[\]]*)$/) || line.match(/^([\s\S]*?)\s+([\d,]+)$/);
-                // 【バグ完全修正】正しい配列のインデックス[1], [2]を指定して文字と数値を抽出します
                 if (matchResult) {
                     itemName = matchResult[1].trim();
                     amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1;
@@ -269,9 +275,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 await interaction.editReply({ content: '❌ 有効なアイテムデータが検出されませんでした。' });
                 return;
             }
-            // ==========================================
-            // 【仕様1：均等分配（ON）の平等化ロジック】
-            // ==========================================
+
             if (isEqual) {
                 itemOrderTrack.forEach(itemName => {
                     const totalAmount = totalItemsMap[itemName];
@@ -308,9 +312,6 @@ client.on(Events.InteractionCreate, async interaction => {
                     }
                 });
 
-            // ==========================================
-            // 【仕様2：ランダム分配（OFF）の平等化ロジック】
-            // ==========================================
             } else {
                 const shuffledChunks = shuffle(parsedLines);
                 const playerRotator = shuffle(players);
@@ -321,7 +322,6 @@ client.on(Events.InteractionCreate, async interaction => {
                 });
             }
 
-            // --- 日付・タイトル処理 ---
             const lotteryDate = new Date();
             let dateHeaderText = '抽選日: ' + lotteryDate.toLocaleDateString('ja-JP');
 
@@ -335,7 +335,6 @@ client.on(Events.InteractionCreate, async interaction => {
                 ? '≪' + eventHeader + 'アイテム付与結果≫'
                 : '≪' + eventHeader + (isEqual ? '均等' : 'ランダム') + '分配抽選結果≫';
             
-            // --- Embed構築処理 ---
             const embeds = [];
             let currentEmbed = new EmbedBuilder().setTitle(titleText).setDescription(dateHeaderText).setColor(0x5865F2);
             let fieldChunkIndex = 1;
@@ -387,7 +386,7 @@ client.on(Events.InteractionCreate, async interaction => {
                     embeds.push(remainderEmbed);
                 }
             }
-            // --- HTMLチェックシートファイルの生成と送信 ---
+
             const responseOptions = { embeds: embeds };
 
             try {
@@ -425,9 +424,8 @@ client.on(Events.InteractionCreate, async interaction => {
             await interaction.editReply(responseOptions);
             return;
         }
-        // ==========================================
-        // 【仕様3：倉庫データ抽出モード】の送信処理
-        // ==========================================
+
+        // --- 2. 倉庫データ抽出モードのモーダル処理 ---
         if (interaction.customId === 'ymirExtractModal') {
             await interaction.deferReply(); 
 
@@ -443,8 +441,6 @@ client.on(Events.InteractionCreate, async interaction => {
             const groupOrder = [];
 
             const normalizedLog = combinedLog.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ');
-            
-            // 🛠️ スペースや特殊文字を完全に許容する正しい正規表現
             const logRegex = /([^\s]+)\s+([\d,]+)\s+([\s\S]+?)\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}):(\d{2}):(\d{2})\s*\(UTC\+8\)/g;
 
             let match;
@@ -456,7 +452,6 @@ client.on(Events.InteractionCreate, async interaction => {
                 const countNum = parseInt(countStr.replace(/,/g, ''), 10) || 1;
                 let rawLocation = match[3].trim(); 
 
-                // 🛠️ エラーの起きない安全な方法で、ハイフンより前の地名だけを切り出す
                 if (rawLocation.includes('-')) {
                     const idx = rawLocation.indexOf('-');
                     if (idx > 0) {
@@ -468,7 +463,6 @@ client.on(Events.InteractionCreate, async interaction => {
                 const datePart = match[4];      
                 const hourPart = match[5];      
 
-                // 分・秒を「00:00」に切り捨ててグループキーを生成
                 const roundedTimestamp = `${datePart} ${hourPart}:00:00 (UTC+8)`;
                 const groupKey = `${locationName}::${roundedTimestamp}`;
 
@@ -480,12 +474,12 @@ client.on(Events.InteractionCreate, async interaction => {
                 groupMap[groupKey].push({ name: itemName, count: countNum });
                 addedCount++;
             }
+
             if (addedCount === 0) {
                 await interaction.editReply({ content: '❌ 有効な倉庫ログデータが検出されませんでした。フォーマットを確認するか、貼り付け位置が正しいか確かめてください。' });
                 return;
             }
 
-            // 【バグ防止・仕様統一】手動のスラッシュ結合から安全なtoLocaleDateStringに修正
             const today = new Date();
             const dateText = `確認日: ${today.toLocaleDateString('ja-JP')}`;
 
@@ -527,7 +521,6 @@ client.on(Events.InteractionCreate, async interaction => {
                 fieldChunks.forEach((lines, index) => {
                     const pageNum = index + 1;
                     const isSplit = totalPages > 1;
-                    
                     const fieldName = `📍 ${location}${isSplit ? ` (${pageNum} / ${totalPages} ページ)` : ''}\n🕒 ${timestamp}`;
                     const fieldValue = `\`\`\`\n${lines.join('\n')}\n\`\`\``;
 
