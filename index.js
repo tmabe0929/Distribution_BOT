@@ -334,7 +334,6 @@ client.on(Events.InteractionCreate, async interaction => {
             let titleText = players.length === 1 
                 ? '≪' + eventHeader + 'アイテム付与結果≫'
                 : '≪' + eventHeader + (isEqual ? '均等' : 'ランダム') + '分配抽選結果≫';
-            
             const embeds = [];
             let currentEmbed = new EmbedBuilder().setTitle(titleText).setDescription(dateHeaderText).setColor(0x5865F2);
             let fieldChunkIndex = 1;
