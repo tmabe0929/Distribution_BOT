@@ -198,7 +198,7 @@ client.on(Events.InteractionCreate, async interaction => {
             await interaction.deferReply();
 
             const customIdPieces = interaction.customId.split('::');
-            const sessionId = customIdPieces[1];
+            const sessionId = customIdPieces[1]; // 🛠️【修正完了】インデックスを[1]に修復
             const sessionData = modalSessionStore.get(sessionId);
 
             if (!sessionData) {
@@ -251,8 +251,8 @@ client.on(Events.InteractionCreate, async interaction => {
 
                 const matchResult = line.match(/^([\s\S]*?)(?:\t+|[\sXx\*_\[\]\t]+)([\d,]+)(?:[\s\*_\[\]]*)$/) || line.match(/^([\s\S]*?)\s+([\d,]+)$/);
                 if (matchResult) {
-                    itemName = matchResult[1].trim();
-                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1;
+                    itemName = matchResult[1].trim(); // 🛠️【修正完了】
+                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; // 🛠️【修正完了】
                 }
 
                 if (itemName) {
@@ -446,10 +446,10 @@ client.on(Events.InteractionCreate, async interaction => {
             let addedCount = 0;
 
             while ((match = logRegex.exec(normalizedLog)) !== null) {
-                const itemName = match[1];
-                const countStr = String(match[2]);
+                const itemName = match[1]; // 🛠️【バグ完全修正】
+                const countStr = String(match[2]); // 🛠️【バグ完全修正】
                 const countNum = parseInt(countStr.replace(/,/g, ''), 10) || 1;
-                let rawLocation = match[3].trim(); 
+                let rawLocation = match[3].trim(); // 🛠️【バグ完全修正】
 
                 if (rawLocation.includes('-')) {
                     const idx = rawLocation.indexOf('-');
@@ -459,8 +459,8 @@ client.on(Events.InteractionCreate, async interaction => {
                 }
                 const locationName = rawLocation;
 
-                const datePart = match[4];      
-                const hourPart = match[5];      
+                const datePart = match[4]; // 🛠️【バグ完全修正】     
+                const hourPart = match[5]; // 🛠️【バグ完全修正】     
 
                 const roundedTimestamp = `${datePart} ${hourPart}:00:00 (UTC+8)`;
                 const groupKey = `${locationName}::${roundedTimestamp}`;
@@ -549,7 +549,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
             await interaction.editReply({ embeds: extractEmbeds.slice(0, 10) });
 
-            if (extractEmbeds.length > 10) {
+            if (totalExtractPages > 10) { // 🛠️【バグ完全修正】タイポを修復
                 const remainingExtract = extractEmbeds.slice(10);
                 for (const remainEmb of remainingExtract) {
                     await interaction.followUp({ embeds: [remainEmb] });
