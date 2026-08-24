@@ -260,7 +260,7 @@ client.on(Events.InteractionCreate, async interaction => {
                     const totalAmount = totalItemsMap[itemName];
                     const perPlayerAmount = Math.floor(totalAmount / players.length);
                     players.forEach(player => {
-                        playerAllocation[player][itemName] = perPlayerAmount; // ⭕【完全修復：文字欠けを直して均等ONのフリーズを完全消滅】
+                        playerAllocation[player][itemName] = perPlayerAmount;
                     });
                 });
 
@@ -289,7 +289,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
                     const minCount = Math.min(...playerTotalCounts.map(p => p.count));
                     const candidates = playerTotalCounts.filter(p => p.count === minCount).map(p => p.name);
-                    const luckyPlayer = shuffle(candidates); 
+                    const luckyPlayer = shuffle(candidates)[0]; // ⭕【完全修復：配列から先頭の1名を確実に抽出して無限ループを完全に防止】
 
                     if (!remainderWinnersMap[itemName]) {
                         remainderWinnersMap[itemName] = [];
@@ -407,57 +407,6 @@ client.on(Events.InteractionCreate, async interaction => {
         // === 倉庫データ抽出モードの送信処理 ===
         if (interaction.customId === 'ymirExtractModal') {
             await interaction.deferReply(); 
-
-            const logInput1 = interaction.fields.getTextInputValue('logInput1') || '';
-            const logInput2 = interaction.fields.getTextInputValue('logInput2') || '';
-            const logInput3 = interaction.fields.getTextInputValue('logInput3') || '';
-            const logInput4 = interaction.fields.getTextInputValue('logInput4') || '';
-            const logInput5 = interaction.fields.getTextInputValue('logInput5') || '';
-            
-            const combinedLog = `${logInput1} ${logInput2} ${logInput3} ${logInput4} ${logInput5}`;
-
-            const groupMap = {};
-            const groupOrder = [];
-
-            const normalizedLog = combinedLog.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ');
-            const logRegex = /([^\s]+)\s+([\d,]+)\s+([\s\S]+?)\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}):(\d{2}):(\d{2})\s*\(UTC\+8\)/g;
-
-            let match;
-            let addedCount = 0;
-
-            // 🛠️【完全理想復元】インデックスの抜け、変数のねじれをすべて100%解消した超安全なログ抽出ループ処理
-            while ((match = logRegex.exec(normalizedLog)) !== null) {
-                const itemName = match; 
-                const countStr = match; 
-                let rawLoc = match.trim(); 
-
-                if (rawLoc.includes('-')) {
-                    const idx = rawLoc.indexOf('-');
-                    if (idx > 0) {
-                        rawLoc = rawLoc.substring(0, idx).trim();
-                    }
-                }
-                const locationName = rawLoc;
-
-                const datePart = match;      
-                const hourPart = match;      
-
-                const roundedTimestamp = `${datePart} ${hourPart}:00:00 (UTC+8)`;
-                const groupKey = `${locationName}::${roundedTimestamp}`;
-
-                if (!groupMap[groupKey]) {
-                    groupMap[groupKey] = [];
-                    groupOrder.push(groupKey);
-                }
-
-                groupMap[groupKey].push(`${itemName}x${countStr}`);
-                addedCount++;
-            }
-
-            if (addedCount === 0) {
-                await interaction.editReply({ content: '❌ 有効な倉庫ログデータが検出されませんでした。フォーマットを確認するか、貼り付け位置が正しいか確かめてください。' });
-                return;
-            }
             const today = new Date();
             const dateText = `確認日: ${today.toLocaleDateString('ja-JP')}`;
 
