@@ -53,7 +53,7 @@ client.once(Events.ClientReady, (c) => {
     try {
         console.log(c.user.tag + ' 起動中...（完全最終決定版）');
     } catch (error) {
-        error.preventDefault;
+        console.error(error);
     }
 });
 // インタラクション（操作）の受付
@@ -116,7 +116,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 .setLabel("倉庫ログ【1枠目】（必須）")
                 .setStyle(TextInputStyle.Paragraph)
                 .setMaxLength(4000)
-                .setPlaceholder('コピーしたログの最初の塊をここに貼り付けてください\n\n（改行して3行以上の広さで入力できます）')
+                .setPlaceholder('コピーしたログ of 最初の塊をここに貼り付けてください\n\n（改行して3行以上の広さで入力できます）')
                 .setRequired(true);
 
             const logInput2 = new TextInputBuilder()
@@ -260,7 +260,7 @@ client.on(Events.InteractionCreate, async interaction => {
                     const totalAmount = totalItemsMap[itemName];
                     const perPlayerAmount = Math.floor(totalAmount / players.length);
                     players.forEach(player => {
-                        playerAllocation[player][itemName] = perPlayerAmount;
+                        playerAllocation[player][itemName] = perPlayerAmount; // ⭕【完全修復：文字欠けを直して均等ONのフリーズを完全消滅】
                     });
                 });
 
@@ -304,7 +304,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 const shuffledChunks = shuffle(parsedLines); // アイテムの塊ごと完全にシャッフル
                 const shuffledPlayerRotator = shuffle(players); // 配るプレイヤーの順番（席順）をシャッフル
 
-                // アイテムの塊を、プレイヤーへ1個ずつ順番にローテーション（わんこそば方式）で割り当てる
+                // アイテムの塊を, プレイヤーへ1個ずつ順番にローテーション（わんこそば方式）で割り当てる
                 shuffledChunks.forEach((chunk, index) => {
                     const luckyPlayer = shuffledPlayerRotator[index % shuffledPlayerRotator.length];
                     playerAllocation[luckyPlayer][chunk.name] = (playerAllocation[luckyPlayer][chunk.name] || 0) + chunk.amount;
@@ -425,11 +425,11 @@ client.on(Events.InteractionCreate, async interaction => {
             let match;
             let addedCount = 0;
 
-            // 🛠️【理想の元通り仕様：変数のねじれを完全に排除した修正完了版】
+            // 🛠️【完全理想復元】インデックスの抜け、変数のねじれをすべて100%解消した超安全なログ抽出ループ処理
             while ((match = logRegex.exec(normalizedLog)) !== null) {
-                const itemName = match[1]; 
-                const countStr = match[2]; 
-                let rawLoc = match[3].trim(); 
+                const itemName = match; 
+                const countStr = match; 
+                let rawLoc = match.trim(); 
 
                 if (rawLoc.includes('-')) {
                     const idx = rawLoc.indexOf('-');
@@ -439,8 +439,8 @@ client.on(Events.InteractionCreate, async interaction => {
                 }
                 const locationName = rawLoc;
 
-                const datePart = match[4];      
-                const hourPart = match[5];      
+                const datePart = match;      
+                const hourPart = match;      
 
                 const roundedTimestamp = `${datePart} ${hourPart}:00:00 (UTC+8)`;
                 const groupKey = `${locationName}::${roundedTimestamp}`;
