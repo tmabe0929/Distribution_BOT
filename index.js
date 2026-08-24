@@ -49,49 +49,12 @@ function shuffle(array) {
     }
     return result;
 }
-// --- スラッシュコマンドの定義 ---
-const commands = [
-    new SlashCommandBuilder()
-        .setName('分配')
-        .setDescription('アイテムを平等に分配します')
-        .addStringOption(option => 
-            option.setName('イベント名') 
-                .setDescription('イベント名やメモを入力してください（省略可能。ファイル名にも反映されます）')
-                .setRequired(false) 
-        )
-        .addStringOption(option =>
-            option.setName('均等')
-                .setDescription('全員に同じ個数ずつ均等に分配しますか？')
-                .setRequired(false)
-                .addChoices(
-                    { name: 'ON', value: 'on' },
-                    { name: 'OFF', value: 'off' }
-                )
-        )
-        .addIntegerOption(option =>
-            option.setName('分配待期期間')
-                .setDescription('分配開始予定日を算出するために、抽選日にプラスする日数（数字）を入力してください')
-                .setRequired(false)
-        )
-        .toJSON(),
 
-    new SlashCommandBuilder()
-        .setName('ymir倉庫データ抽出')
-        .setDescription('倉庫の回収ログからアイテム名と個数を抽出し、時間ごとにグループ化します')
-        .toJSON()
-];
-const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
-
+// 🛠️【修正】起動時の不要な通信（rest.put）を削除し、純粋なログ出力のみに変更
 client.once(Events.ClientReady, async (c) => {
-    try {
-        console.log(c.user.tag + ' 起動中...');
-        await rest.put(Routes.applicationCommands(c.user.id), { body: commands });
-        console.log('スラッシュコマンドを登録しました。');
-    } catch (error) {
-        console.error(error);
-    }
+    console.log(`${c.user.tag} 起動中...`);
+    console.log('※スラッシュコマンドの登録は外部スクリプトに移行しました。');
 });
-
 client.on(Events.InteractionCreate, async interaction => {
     // スラッシュコマンド（ChatInput）の処理
     if (interaction.isChatInputCommand()) {
@@ -198,7 +161,7 @@ client.on(Events.InteractionCreate, async interaction => {
             await interaction.deferReply();
 
             const customIdPieces = interaction.customId.split('::');
-            const sessionId = customIdPieces[1]; // 🛠️【修正完了】インデックスを[1]に修復
+            const sessionId = customIdPieces[1]; 
             const sessionData = modalSessionStore.get(sessionId);
 
             if (!sessionData) {
@@ -251,8 +214,8 @@ client.on(Events.InteractionCreate, async interaction => {
 
                 const matchResult = line.match(/^([\s\S]*?)(?:\t+|[\sXx\*_\[\]\t]+)([\d,]+)(?:[\s\*_\[\]]*)$/) || line.match(/^([\s\S]*?)\s+([\d,]+)$/);
                 if (matchResult) {
-                    itemName = matchResult[1].trim(); // 🛠️【修正完了】
-                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; // 🛠️【修正完了】
+                    itemName = matchResult[1].trim(); 
+                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; 
                 }
 
                 if (itemName) {
@@ -321,7 +284,6 @@ client.on(Events.InteractionCreate, async interaction => {
                     playerAllocation[luckyPlayer][chunk.name] = (playerAllocation[luckyPlayer][chunk.name] || 0) + chunk.amount;
                 });
             }
-
             const lotteryDate = new Date();
             let dateHeaderText = '抽選日: ' + lotteryDate.toLocaleDateString('ja-JP');
 
@@ -423,7 +385,6 @@ client.on(Events.InteractionCreate, async interaction => {
             await interaction.editReply(responseOptions);
             return;
         }
-
         // --- 2. 倉庫データ抽出モードのモーダル処理 ---
         if (interaction.customId === 'ymirExtractModal') {
             await interaction.deferReply(); 
@@ -446,10 +407,10 @@ client.on(Events.InteractionCreate, async interaction => {
             let addedCount = 0;
 
             while ((match = logRegex.exec(normalizedLog)) !== null) {
-                const itemName = match[1]; // 🛠️【バグ完全修正】
-                const countStr = String(match[2]); // 🛠️【バグ完全修正】
+                const itemName = match[1]; 
+                const countStr = String(match[2]); 
                 const countNum = parseInt(countStr.replace(/,/g, ''), 10) || 1;
-                let rawLocation = match[3].trim(); // 🛠️【バグ完全修正】
+                let rawLocation = match[3].trim(); 
 
                 if (rawLocation.includes('-')) {
                     const idx = rawLocation.indexOf('-');
@@ -459,8 +420,8 @@ client.on(Events.InteractionCreate, async interaction => {
                 }
                 const locationName = rawLocation;
 
-                const datePart = match[4]; // 🛠️【バグ完全修正】     
-                const hourPart = match[5]; // 🛠️【バグ完全修正】     
+                const datePart = match[4];      
+                const hourPart = match[5];      
 
                 const roundedTimestamp = `${datePart} ${hourPart}:00:00 (UTC+8)`;
                 const groupKey = `${locationName}::${roundedTimestamp}`;
@@ -549,7 +510,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
             await interaction.editReply({ embeds: extractEmbeds.slice(0, 10) });
 
-            if (totalExtractPages > 10) { // 🛠️【バグ完全修正】タイポを修復
+            if (totalExtractPages > 10) { 
                 const remainingExtract = extractEmbeds.slice(10);
                 for (const remainEmb of remainingExtract) {
                     await interaction.followUp({ embeds: [remainEmb] });
