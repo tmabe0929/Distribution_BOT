@@ -1,5 +1,5 @@
 // ==============================================================================
-// index.js - Discord Bot メインスクリプト（完全修復版 1/5）
+// index.js - Discord Bot メインスクリプト（完全分離・修復版 1/5）
 // ==============================================================================
 
 // Renderの自動停止（ポート未検出エラー）を防ぐためのダミーサーバー
@@ -172,7 +172,7 @@ client.on(Events.InteractionCreate, async interaction => {
             await interaction.deferReply();
 
             const customIdPieces = interaction.customId.split('::');
-            const sessionId = customIdPieces[1]; // 🛠️【完全修復】
+            const sessionId = customIdPieces[1]; // 🛠️【完全修復：正しいインデックス番号を指定】
             const sessionData = modalSessionStore.get(sessionId);
 
             if (!sessionData) {
@@ -228,8 +228,8 @@ client.on(Events.InteractionCreate, async interaction => {
 
                 const matchResult = line.match(/^([\s\S]*?)(?:\t+|[\sXx\*_\[\]\t]+)([\d,]+)(?:[\s\*_\[\]]*)$/) || line.match(/^([\s\S]*?)\s+([\d,]+)$/);
                 if (matchResult) {
-                    itemName = matchResult[1].trim(); // 🛠️【完全修復】
-                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; // 🛠️【完全修復】
+                    itemName = matchResult[1].trim(); // 🛠️【完全修復：配列インデックスを指定】
+                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; // 🛠️【完全修復：配列インデックスを指定】
                 }
 
                 if (itemName) {
@@ -383,7 +383,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
             // HTMLチェックシート生成と添付
             try {
-                // 🛠️【完全修復】eventHeader を本来の eventParam に修正して引数のズレを解消
+                // 🛠️【完全修復】引数を本来の eventParam に統一してクラッシュを修正
                 const htmlContent = generateChecklistHtml(lotteryDate, waitDays, eventParam, players, itemOrderTrack, playerAllocation, remainderWinnersMap);
                 const fileBuffer = Buffer.from(htmlContent, 'utf-8');
                 const fileMemo = eventParam ? `_${eventParam}` : '';
