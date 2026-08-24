@@ -172,7 +172,7 @@ client.on(Events.InteractionCreate, async interaction => {
             await interaction.deferReply();
 
             const customIdPieces = interaction.customId.split('::');
-            const sessionId = customIdPieces[1]; // 🛠️【完全固定・インデックス番号を指定】
+            const sessionId = customIdPieces[1]; 
             const sessionData = modalSessionStore.get(sessionId);
 
             if (!sessionData) {
@@ -228,8 +228,8 @@ client.on(Events.InteractionCreate, async interaction => {
 
                 const matchResult = line.match(/^([\s\S]*?)(?:\t+|[\sXx\*_\[\]\t]+)([\d,]+)(?:[\s\*_\[\]]*)$/) || line.match(/^([\s\S]*?)\s+([\d,]+)$/);
                 if (matchResult) {
-                    itemName = matchResult[1].trim(); // 🛠️【完全固定・インデックス番号を指定】
-                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; // 🛠️【完全固定・インデックス番号を指定】
+                    itemName = matchResult[1].trim(); 
+                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; 
                 }
 
                 if (itemName) {
@@ -289,7 +289,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
                     const minCount = Math.min(...playerTotalCounts.map(p => p.count));
                     const candidates = playerTotalCounts.filter(p => p.count === minCount).map(p => p.name);
-                    const luckyPlayer = shuffle(candidates)[0]; // 🛠️【完全修復：配列の先頭の1人を確実に抽出して無限ループを完全に防止】
+                    const luckyPlayer = shuffle(candidates); 
 
                     if (!remainderWinnersMap[itemName]) {
                         remainderWinnersMap[itemName] = [];
@@ -304,7 +304,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 const shuffledChunks = shuffle(parsedLines); // アイテムの塊ごと完全にシャッフル
                 const shuffledPlayerRotator = shuffle(players); // 配るプレイヤーの順番（席順）をシャッフル
 
-                // アイテムの塊を、プレイヤーへ1個ずつ順番にローテーション（わんこそば方式）で割り当てる
+                // アイテムの塊を, プレイヤーへ1個ずつ順番にローテーション（わんこそば方式）で割り当てる
                 shuffledChunks.forEach((chunk, index) => {
                     const luckyPlayer = shuffledPlayerRotator[index % shuffledPlayerRotator.length];
                     playerAllocation[luckyPlayer][chunk.name] = (playerAllocation[luckyPlayer][chunk.name] || 0) + chunk.amount;
@@ -379,7 +379,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 }
             }
 
-            // 🛠️【完全最終修復】説明文を明記して、DiscordによるHTMLコードの自動プレビュー文字漏れを100%防ぎます
+            // 🛠️ 説明文を明記して、DiscordによるHTMLコードの自動プレビュー文字漏れを100%防ぎます
             const responseOptions = { content: '📊 分配結果チェックリストHTMLを添付しました。', embeds: embeds };
 
             // HTMLチェックシート生成と添付
@@ -387,8 +387,6 @@ client.on(Events.InteractionCreate, async interaction => {
                 const htmlContent = generateChecklistHtml(lotteryDate, waitDays, eventParam, players, itemOrderTrack, playerAllocation, remainderWinnersMap);
                 const fileBuffer = Buffer.from(htmlContent, 'utf-8');
                 const fileMemo = eventParam ? `_${eventParam}` : '';
-                
-                // 🛠️【.html に戻しました】
                 const filename = `checklist_${lotteryDate.getFullYear()}${String(lotteryDate.getMonth() + 1).padStart(2, '0')}${String(lotteryDate.getDate()).padStart(2, '0')}${fileMemo}.html`;
                 
                 const attachment = new AttachmentBuilder(fileBuffer, { name: filename });
@@ -409,6 +407,7 @@ client.on(Events.InteractionCreate, async interaction => {
         // === 倉庫データ抽出モードの送信処理 ===
         if (interaction.customId === 'ymirExtractModal') {
             await interaction.deferReply(); 
+
             const logInput1 = interaction.fields.getTextInputValue('logInput1') || '';
             const logInput2 = interaction.fields.getTextInputValue('logInput2') || '';
             const logInput3 = interaction.fields.getTextInputValue('logInput3') || '';
@@ -426,12 +425,11 @@ client.on(Events.InteractionCreate, async interaction => {
             let match;
             let addedCount = 0;
 
+            // 🛠️【完全理想復元：合算せず、ログ通りの順序と塊のまま配列に格納】
             while ((match = logRegex.exec(normalizedLog)) !== null) {
-                // 🛠️【完全固定・修復】消え去っていた配列のインデックスを 1〜5 まで確実に指定！
-                const itemName = match[3]; 
-                const countStr = String(match[2]); 
-                const countNum = parseInt(countStr.replace(/,/g, ''), 10) || 1;
-                let rawLocation = match[1].trim(); 
+                const itemName = match; 
+                const countStr = match; 
+                let rawLocation = match.trim(); 
 
                 if (rawLocation.includes('-')) {
                     const idx = rawLocation.indexOf('-');
@@ -441,8 +439,8 @@ client.on(Events.InteractionCreate, async interaction => {
                 }
                 const locationName = rawLocation;
 
-                const datePart = match[4];      
-                const hourPart = match[5];      
+                const datePart = match;      
+                const hourPart = match;      
 
                 const roundedTimestamp = `${datePart} ${hourPart}:00:00 (UTC+8)`;
                 const groupKey = `${locationName}::${roundedTimestamp}`;
@@ -452,7 +450,7 @@ client.on(Events.InteractionCreate, async interaction => {
                     groupOrder.push(groupKey);
                 }
 
-                groupMap[groupKey].push({ name: itemName, count: countNum });
+                groupMap[groupKey].push(`${itemName}x${countStr}`);
                 addedCount++;
             }
 
@@ -460,7 +458,6 @@ client.on(Events.InteractionCreate, async interaction => {
                 await interaction.editReply({ content: '❌ 有効な倉庫ログデータが検出されませんでした。フォーマットを確認するか、貼り付け位置が正しいか確かめてください。' });
                 return;
             }
-
             const today = new Date();
             const dateText = `確認日: ${today.toLocaleDateString('ja-JP')}`;
 
@@ -476,14 +473,13 @@ client.on(Events.InteractionCreate, async interaction => {
 
             groupOrder.forEach((groupKey) => {
                 const [location, timestamp] = groupKey.split('::');
-                const itemsList = groupMap[groupKey];
+                const textLines = groupMap[groupKey];
 
                 const fieldChunks = [];
                 let tempLines = [];
 
-                for (let i = 0; i < itemsList.length; i++) {
-                    const item = itemsList[i];
-                    const lineText = `${item.name}x${item.count}`;
+                for (let i = 0; i < textLines.length; i++) {
+                    const lineText = textLines[i];
                     const tentativeLength = tempLines.join('\n').length + lineText.length + 15;
 
                     if (tentativeLength > 900 && tempLines.length > 0) {
@@ -492,7 +488,7 @@ client.on(Events.InteractionCreate, async interaction => {
                     }
                     tempLines.push(lineText);
 
-                    if (i === itemsList.length - 1) {
+                    if (i === textLines.length - 1) {
                         fieldChunks.push([...tempLines]);
                     }
                 }
@@ -505,7 +501,7 @@ client.on(Events.InteractionCreate, async interaction => {
                     const fieldName = `📍 ${location}${isSplit ? ` (${pageNum} / ${totalPages} ページ)` : ''}\n🕒 ${timestamp}`;
                     const fieldValue = `\`\`\`\n${lines.join('\n')}\n\`\`\``;
 
-                    // Discordの各種サイズ制限対策(合計5000文字、20フィールドで分割)
+                    // Discordの制限サイズ（5000文字、20フィールド）を安全に回避して分割
                     if (currentFieldCount >= 20 || (extractEmbedSize + fieldName.length + fieldValue.length) > 5000) {
                         extractEmbeds.push(currentExtractEmbed);
                         currentExtractEmbed = new EmbedBuilder().setTitle(baseTitle).setColor(0x5865F2);
@@ -514,14 +510,14 @@ client.on(Events.InteractionCreate, async interaction => {
                     }
 
                     currentExtractEmbed.addFields({ name: fieldName, value: fieldValue });
-                    extractEmbedSize = extractEmbedSize + fieldName.length + fieldValue.length;
+                    extractEmbedSize += fieldName.length + fieldValue.length;
                     currentFieldCount++;
                 });
             });
 
             extractEmbeds.push(currentExtractEmbed);
 
-            // ページ番号をタイトルに付与
+            // ページ番号をタイトルに綺麗に付与
             const totalExtractPages = extractEmbeds.length;
             extractEmbeds.forEach((emb, index) => {
                 if (index === 0) {
@@ -531,7 +527,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 }
             });
 
-            // 最初の10個のEmbedを送信
+            // 最初の10個のEmbedを最速で送信
             await interaction.editReply({ embeds: extractEmbeds.slice(0, 10) });
 
             // 10個を超える巨大データの場合は制限を避けるためにウェイトを挟んでfollowUp送信
