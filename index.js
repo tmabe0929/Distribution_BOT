@@ -1,5 +1,5 @@
 // ==============================================================================
-// index.js - Discord Bot メインスクリプト（完全分離・修復版 1/5）
+// index.js - Discord Bot メインスクリプト（真の完成版 1/5）
 // ==============================================================================
 
 // Renderの自動停止（ポート未検出エラー）を防ぐためのダミーサーバー
@@ -51,7 +51,7 @@ function shuffle(array) {
 // 起動ログの出力
 client.once(Events.ClientReady, async (c) => {
     try {
-        console.log(c.user.tag + ' 起動中...（完全修復版）');
+        console.log(c.user.tag + ' 起動中...（完全修復完了版）');
     } catch (error) {
         console.error(error);
     }
@@ -274,7 +274,7 @@ client.on(Events.InteractionCreate, async interaction => {
                     }
                 });
 
-                // 3. 余りアイテムの山を完全にシャッフル（★ランダム要素）
+                // 3. 余りアイテム的山を完全にシャッフル（★ランダム要素）
                 const shuffledRemainderPool = shuffle(remainderPool);
 
                 // 4. 「現時点での獲得総数が少ない人」を優先して1個ずつ配る（★当選なし撲滅ロジック）
@@ -383,7 +383,6 @@ client.on(Events.InteractionCreate, async interaction => {
 
             // HTMLチェックシート生成と添付
             try {
-                // 🛠️【完全修復】引数を本来の eventParam に統一してクラッシュを修正
                 const htmlContent = generateChecklistHtml(lotteryDate, waitDays, eventParam, players, itemOrderTrack, playerAllocation, remainderWinnersMap);
                 const fileBuffer = Buffer.from(htmlContent, 'utf-8');
                 const fileMemo = eventParam ? `_${eventParam}` : '';
@@ -426,7 +425,7 @@ client.on(Events.InteractionCreate, async interaction => {
             let addedCount = 0;
 
             while ((match = logRegex.exec(normalizedLog)) !== null) {
-                // 🛠️【完全修復】消えていたインデックス番号 [1] 〜 [5] をすべて完璧に復元！
+                // 🛠️【完全修復】消え去っていた配列のインデックスを 1〜5 まで完全に固定・復元しました！
                 const itemName = match[1]; 
                 const countStr = String(match[2]); 
                 const countNum = parseInt(countStr.replace(/,/g, ''), 10) || 1;
