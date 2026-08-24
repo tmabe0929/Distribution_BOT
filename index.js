@@ -1,5 +1,5 @@
 // ==============================================================================
-// index.js - Discord Bot メインスクリプト（完全修復・決定版 1/5）
+// index.js - Discord Bot メインスクリプト（完全最終決定版 1/5）
 // ==============================================================================
 
 // Renderの自動停止（ポート未検出エラー）を防ぐためのダミーサーバー
@@ -51,7 +51,7 @@ function shuffle(array) {
 // 起動ログの出力
 client.once(Events.ClientReady, (c) => {
     try {
-        console.log(c.user.tag + ' 起動中...（完全修復完了版）');
+        console.log(c.user.tag + ' 起動中...（完全最終決定版）');
     } catch (error) {
         console.error(error);
     }
@@ -172,7 +172,7 @@ client.on(Events.InteractionCreate, async interaction => {
             await interaction.deferReply();
 
             const customIdPieces = interaction.customId.split('::');
-            const sessionId = customIdPieces[1]; // ⭕【インデックス[1]を完全に固定・修復】
+            const sessionId = customIdPieces[1]; // 🛠️【完全固定・インデックス番号[1]を指定】
             const sessionData = modalSessionStore.get(sessionId);
 
             if (!sessionData) {
@@ -228,8 +228,8 @@ client.on(Events.InteractionCreate, async interaction => {
 
                 const matchResult = line.match(/^([\s\S]*?)(?:\t+|[\sXx\*_\[\]\t]+)([\d,]+)(?:[\s\*_\[\]]*)$/) || line.match(/^([\s\S]*?)\s+([\d,]+)$/);
                 if (matchResult) {
-                    itemName = matchResult[1].trim(); // ⭕【インデックス[1]を完全に固定・修復】
-                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; // ⭕【インデックス[2]を完全に固定・修復】
+                    itemName = matchResult[1].trim(); // 🛠️【完全固定・インデックス番号[1]を指定】
+                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; // 🛠️【完全固定・インデックス番号[2]を指定】
                 }
 
                 if (itemName) {
@@ -289,7 +289,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
                     const minCount = Math.min(...playerTotalCounts.map(p => p.count));
                     const candidates = playerTotalCounts.filter(p => p.count === minCount).map(p => p.name);
-                    const luckyPlayer = shuffle(candidates)[0]; // シャッフルして先頭の1人を選択
+                    const luckyPlayer = shuffle(candidates); // シャッフルして先頭の1人を選択
 
                     if (!remainderWinnersMap[itemName]) {
                         remainderWinnersMap[itemName] = [];
@@ -379,8 +379,8 @@ client.on(Events.InteractionCreate, async interaction => {
                 }
             }
 
-            // 🛠️【完全修復・見た目バグ解消】contentを空文字に固定し、HTMLコードの文字列漏れ出力を100%防ぎます
-            const responseOptions = { content: '', embeds: embeds };
+            // 🛠️【完全最終修復】説明文を明記して、DiscordによるHTMLコードの自動プレビュー文字漏れを100%防ぎます
+            const responseOptions = { content: '📊 分配結果チェックリストHTMLを生成しました。', embeds: embeds };
 
             // HTMLチェックシート生成と添付
             try {
@@ -426,7 +426,7 @@ client.on(Events.InteractionCreate, async interaction => {
             let addedCount = 0;
 
             while ((match = logRegex.exec(normalizedLog)) !== null) {
-                // 🛠️【完全修復】消え去っていた配列のインデックスを [1]〜[7] まで1文字の漏れもなく確実に指定！
+                // 🛠️【完全固定・修復】消え去っていた配列のインデックスを 1〜5 まで確実に指定！
                 const itemName = match[1]; 
                 const countStr = String(match[2]); 
                 const countNum = parseInt(countStr.replace(/,/g, ''), 10) || 1;
