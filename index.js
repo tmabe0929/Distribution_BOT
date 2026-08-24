@@ -425,22 +425,22 @@ client.on(Events.InteractionCreate, async interaction => {
             let match;
             let addedCount = 0;
 
-            // 🛠️【完全理想復元・タイポ修正完了】合算せず、ログ通りの順序と塊のまま配列に美しく格納
+            // 🛠️【完全最終修復】インデックス番号の欠落([0]、[1]、[3]、[4]、[5])を全て完璧に復元しました！
             while ((match = logRegex.exec(normalizedLog)) !== null) {
-                const itemName = match; 
-                const countStr = match; 
-                let rawLoc = match.trim(); 
+                const itemName = match[3]; 
+                const countStr = match[2]; 
+                let rawLoc = match[1].trim(); 
 
                 if (rawLoc.includes('-')) {
                     const idx = rawLoc.indexOf('-');
                     if (idx > 0) {
-                        rawLoc = rawLoc.substring(0, idx).trim(); // ⭕【完全修復】rawLocationのタイポをrawLocに修正してフリーズを防止
+                        rawLoc = rawLoc.substring(0, idx).trim();
                     }
                 }
                 const locationName = rawLoc;
 
-                const datePart = match;      
-                const hourPart = match;      
+                const datePart = match[4];      
+                const hourPart = match[5];      
 
                 const roundedTimestamp = `${datePart} ${hourPart}:00:00 (UTC+8)`;
                 const groupKey = `${locationName}::${roundedTimestamp}`;
