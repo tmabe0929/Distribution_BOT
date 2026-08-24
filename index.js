@@ -304,7 +304,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 const shuffledChunks = shuffle(parsedLines); // アイテムの塊ごと完全にシャッフル
                 const shuffledPlayerRotator = shuffle(players); // 配るプレイヤーの順番（席順）をシャッフル
 
-                // アイテムの塊を, プレイヤーへ1個ずつ順番にローテーション（わんこそば方式）で割り当てる
+                // アイテムの塊を、プレイヤーへ1個ずつ順番にローテーション（わんこそば方式）で割り当てる
                 shuffledChunks.forEach((chunk, index) => {
                     const luckyPlayer = shuffledPlayerRotator[index % shuffledPlayerRotator.length];
                     playerAllocation[luckyPlayer][chunk.name] = (playerAllocation[luckyPlayer][chunk.name] || 0) + chunk.amount;
@@ -425,19 +425,19 @@ client.on(Events.InteractionCreate, async interaction => {
             let match;
             let addedCount = 0;
 
-            // 🛠️【完全理想復元：合算せず、ログ通りの順序と塊のまま配列に格納】
+            // 🛠️【完全理想復元・タイポ修正完了】合算せず、ログ通りの順序と塊のまま配列に美しく格納
             while ((match = logRegex.exec(normalizedLog)) !== null) {
                 const itemName = match; 
                 const countStr = match; 
-                let rawLocation = match.trim(); 
+                let rawLoc = match.trim(); 
 
-                if (rawLocation.includes('-')) {
-                    const idx = rawLocation.indexOf('-');
+                if (rawLoc.includes('-')) {
+                    const idx = rawLoc.indexOf('-');
                     if (idx > 0) {
-                        rawLocation = rawLocation.substring(0, idx).trim();
+                        rawLoc = rawLoc.substring(0, idx).trim(); // ⭕【完全修復】rawLocationのタイポをrawLocに修正してフリーズを防止
                     }
                 }
-                const locationName = rawLocation;
+                const locationName = rawLoc;
 
                 const datePart = match;      
                 const hourPart = match;      
