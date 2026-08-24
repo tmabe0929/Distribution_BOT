@@ -1,5 +1,5 @@
 // ==============================================================================
-// index.js - Discord Bot メインスクリプト（完全修復版 1/5）
+// index.js - Discord Bot メインスクリプト（真の完成版 1/5）
 // ==============================================================================
 
 // Renderの自動停止（ポート未検出エラー）を防ぐためのダミーサーバー
@@ -51,7 +51,7 @@ function shuffle(array) {
 // 起動ログの出力
 client.once(Events.ClientReady, (c) => {
     try {
-        console.log(c.user.tag + ' 起動中...（完全修復版）');
+        console.log(c.user.tag + ' 起動中...（完全修復完了版）');
     } catch (error) {
         console.error(error);
     }
@@ -172,7 +172,7 @@ client.on(Events.InteractionCreate, async interaction => {
             await interaction.deferReply();
 
             const customIdPieces = interaction.customId.split('::');
-            const sessionId = customIdPieces[1]; // 🛠️【完全修復】
+            const sessionId = customIdPieces[1]; // 🛠️【完全修復：配列インデックス[1]を固定】
             const sessionData = modalSessionStore.get(sessionId);
 
             if (!sessionData) {
@@ -228,8 +228,8 @@ client.on(Events.InteractionCreate, async interaction => {
 
                 const matchResult = line.match(/^([\s\S]*?)(?:\t+|[\sXx\*_\[\]\t]+)([\d,]+)(?:[\s\*_\[\]]*)$/) || line.match(/^([\s\S]*?)\s+([\d,]+)$/);
                 if (matchResult) {
-                    itemName = matchResult[1].trim(); // 🛠️【完全修復】
-                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; // 🛠️【完全修復】
+                    itemName = matchResult[1].trim(); // 🛠️【完全修復：配列インデックスを指定】
+                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; // 🛠️【完全修復：配列インデックスを指定】
                 }
 
                 if (itemName) {
