@@ -53,7 +53,7 @@ client.once(Events.ClientReady, (c) => {
     try {
         console.log(c.user.tag + ' 起動中...（完全最終決定版）');
     } catch (error) {
-        console.error(error);
+        error.preventDefault;
     }
 });
 // インタラクション（操作）の受付
@@ -425,11 +425,11 @@ client.on(Events.InteractionCreate, async interaction => {
             let match;
             let addedCount = 0;
 
-            // 🛠️【完全最終修復】インデックス番号の欠落([0]、[1]、[3]、[4]、[5])を全て完璧に復元しました！
+            // 🛠️【理想の元通り仕様：変数のねじれを完全に排除した修正完了版】
             while ((match = logRegex.exec(normalizedLog)) !== null) {
-                const itemName = match[3]; 
+                const itemName = match[1]; 
                 const countStr = match[2]; 
-                let rawLoc = match[1].trim(); 
+                let rawLoc = match[3].trim(); 
 
                 if (rawLoc.includes('-')) {
                     const idx = rawLoc.indexOf('-');
