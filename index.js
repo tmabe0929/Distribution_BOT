@@ -1,93 +1,61 @@
-    // --------------------------------------------------------------------------
-    // 2. モーダル送信（ModalSubmit）の処理
-    // --------------------------------------------------------------------------
-    if (interaction.isModalSubmit()) {
-        
-        // === 分配モードの送信処理 ===
-        if (interaction.customId.startsWith('distributeModal::')) {
-            await interaction.deferReply();
+// ==============================================================================
+// index.js - Discord Bot メインスクリプト（完全修復版 1/5）
+// ==============================================================================
 
-            const customIdPieces = interaction.customId.split('::');
-            const sessionId = customIdPieces[1]; // ⭕【完全修復：インデックス番号を固定】
-            const sessionData = modalSessionStore.get(sessionId);
+// Renderの自動停止（ポート未検出エラー）を防ぐためのダミーサーバー
+const http = require('http');
+http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Bot is running\n');
+}).listen(process.env.PORT || 3000);
 
-            if (!sessionData) {
-                await interaction.editReply({ content: '❌ モーダルの有効期限が切れました。もう一度やり直してください。' });
-                return;
-            }
+require('dotenv').config();
+const { 
+    Client, 
+    GatewayIntentBits, 
+    ActionRowBuilder, 
+    ModalBuilder, 
+    TextInputBuilder, 
+    TextInputStyle, 
+    Events, 
+    EmbedBuilder, 
+    AttachmentBuilder,
+    ButtonBuilder,
+    ButtonStyle
+} = require('discord.js');
 
-            const { isEqual, waitDays, eventParam } = sessionData;
-            modalSessionStore.delete(sessionId);
+// HTMLチェックシート生成関数を別ファイルから読み込み
+const { generateChecklistHtml } = require('./checklist.js');
 
-            const eventHeader = eventParam ? eventParam + ' ' : '';
+const client = new Client({ 
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent
+    ] 
+});
 
-            // プレイヤー名のクレンジングと分割
-            const players = interaction.fields.getTextInputValue('playersInput')
-                .split(/[\n,，、]+/)
-                .map(s => s.trim())
-                .filter(s => Boolean(s) && s !== '参加者' && s !== '参加者一覧');
-                
-            const itemsRawInput = interaction.fields.getTextInputValue('itemsInput');
+// モーダルの100文字制限を確実に回避するためのストア
+const modalSessionStore = new Map();
 
-            if (players.length === 0) {
-                await interaction.editReply({ content: '❌ 有効なプレイヤーを入力してください。' });
-                return; 
-            }
+// 配列の完全ランダムシャッフル関数
+function shuffle(array) {
+    const result = [...array];
+    for (let i = result.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
+}
 
-            const rawLines = itemsRawInput.split(/[\n]+/).map(s => s.trim()).filter(Boolean);
-            const processedItems = [];
-
-            rawLines.forEach(line => {
-                const normalizedLine = line.replace(/(?<!\d),(?!\d)/g, '\n');
-                const splitPieces = normalizedLine.split('\n').map(s => s.trim()).filter(Boolean);
-                processedItems.push(...splitPieces);
-            });
-
-            if (processedItems.length === 0) {
-                await interaction.editReply({ content: '❌ アイテムを正しく入力してください。' });
-                return;
-            }
-
-            const playerAllocation = Object.fromEntries(players.map(p => [p, {}]));
-            const remainderWinnersMap = {}; 
-            const totalItemsMap = {};
-            const parsedLines = [];
-
-            // アイテム行の解析
-            processedItems.forEach(line => {
-                if (line === 'アイテム' || line.startsWith('≪') || line.startsWith('抽選日:') || (line.startsWith('【') && line.endsWith('】')) || line.startsWith('※') || line.startsWith('🎁') || line.startsWith('・') || line.startsWith('```')) {
-                    return;
-                }
-
-                let itemName = line.trim();
-                let amount = 1;
-
-                const matchResult = line.match(/^([\s\S]*?)(?:\t+|[\sXx\*_\[\]\t]+)([\d,]+)(?:[\s\*_\[\]]*)$/) || line.match(/^([\s\S]*?)\s+([\d,]+)$/);
-                if (matchResult) {
-                    itemName = matchResult[1].trim(); // ⭕【完全修復：配列指定を追加】
-                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; // ⭕【完全修復：配列指定を追加】
-                }
-
-                if (itemName) {
-                    const cleanedName = itemName
-                        .replace(/\(帰属\)/g, '')
-                        .replace(/（帰属）/g, '')
-                        .replace(/\[帰属\]/g, '')
-                        .trim();
-
-                    if (cleanedName) {
-                        totalItemsMap[cleanedName] = (totalItemsMap[cleanedName] || 0) + amount;
-                        parsedLines.push({ name: cleanedName, amount: amount });
-                    }
-                }
-            });
-
-            const itemOrderTrack = Object.keys(totalItemsMap);
-
-            if (itemOrderTrack.length === 0) {
-                await interaction.editReply({ content: '❌ 有効なアイテムデータが検出されませんでした。' });
-                return;
-            }
+// 起動ログの出力
+client.once(Events.ClientReady, (c) => {
+    try {
+        console.log(c.user.tag + ' 起動中...（完全修復版）');
+    } catch (error) {
+        console.error(error);
+    }
+});
 // インタラクション（操作）の受付
 client.on(Events.InteractionCreate, async interaction => {
     
@@ -204,7 +172,7 @@ client.on(Events.InteractionCreate, async interaction => {
             await interaction.deferReply();
 
             const customIdPieces = interaction.customId.split('::');
-            const sessionId = customIdPieces[1]; // 🛠️【完全修復：インデックス番号を確実に固定】
+            const sessionId = customIdPieces[1]; // 🛠️【完全修復】
             const sessionData = modalSessionStore.get(sessionId);
 
             if (!sessionData) {
@@ -260,8 +228,8 @@ client.on(Events.InteractionCreate, async interaction => {
 
                 const matchResult = line.match(/^([\s\S]*?)(?:\t+|[\sXx\*_\[\]\t]+)([\d,]+)(?:[\s\*_\[\]]*)$/) || line.match(/^([\s\S]*?)\s+([\d,]+)$/);
                 if (matchResult) {
-                    itemName = matchResult[1].trim(); // 🛠️【完全修復：配列インデックスを指定】
-                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; // 🛠️【完全修復：配列インデックスを指定】
+                    itemName = matchResult[1].trim(); // 🛠️【完全修復】
+                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; // 🛠️【完全修復】
                 }
 
                 if (itemName) {
@@ -457,7 +425,7 @@ client.on(Events.InteractionCreate, async interaction => {
             let addedCount = 0;
 
             while ((match = logRegex.exec(normalizedLog)) !== null) {
-                // 🛠️【完全修復】消え去っていた配列のインデックス [1]〜[7] をすべて完璧に復元しました！
+                // 🛠️【完全修復】消え去っていた配列のインデックス[1]〜[6]をすべて完璧に復元しました！
                 const itemName = match[1]; 
                 const countStr = String(match[2]); 
                 const countNum = parseInt(countStr.replace(/,/g, ''), 10) || 1;
