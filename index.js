@@ -1,12 +1,13 @@
-// ==========================================
+// ==============================================================================
+// index.js - Discord Bot メインスクリプト（完全修復・分割版 1/5）
+// ==============================================================================
+
 // Renderの自動停止（ポート未検出エラー）を防ぐためのダミーサーバー
-// ==========================================
 const http = require('http');
 http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('Bot is running\n');
 }).listen(process.env.PORT || 3000);
-// ==========================================
 
 require('dotenv').config();
 const { 
@@ -18,9 +19,6 @@ const {
     TextInputStyle, 
     Events, 
     EmbedBuilder, 
-    REST, 
-    Routes, 
-    SlashCommandBuilder, 
     AttachmentBuilder,
     ButtonBuilder,
     ButtonStyle
@@ -50,7 +48,7 @@ function shuffle(array) {
     return result;
 }
 
-// 🛠️【完全修復】元々のコードと1文字も変えずに起動ログを出力します
+// 起動ログの出力
 client.once(Events.ClientReady, async (c) => {
     try {
         console.log(c.user.tag + ' 起動中...');
@@ -58,9 +56,15 @@ client.once(Events.ClientReady, async (c) => {
         console.error(error);
     }
 });
+// インタラクション（操作）の受付
 client.on(Events.InteractionCreate, async interaction => {
-    // スラッシュコマンド（ChatInput）の処理
+    
+    // --------------------------------------------------------------------------
+    // 1. スラッシュコマンド（ChatInput）の処理
+    // --------------------------------------------------------------------------
     if (interaction.isChatInputCommand()) {
+        
+        // --- 「分配」コマンド ---
         if (interaction.commandName === '分配') {
             const equalChoice = interaction.options.getString('均等') || 'off';
             const isEqual = equalChoice === 'on';
@@ -77,6 +81,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 .setStyle(TextInputStyle.Paragraph)
                 .setPlaceholder('PlayerA\nPlayerB\nor\nPlayerA,PlayerB')
                 .setRequired(true);
+
             const itemsInput = new TextInputBuilder()
                 .setCustomId('itemsInput')
                 .setLabel("アイテム（改行、カンマ、タブ区切り対応）")
@@ -92,14 +97,15 @@ client.on(Events.InteractionCreate, async interaction => {
             // 【3秒ルール対策】Discordにモーダルを最速で返却
             await interaction.showModal(modal);
 
-            // オプション取得とストア保存はshowModalの後に実行
+            // セッションデータのストア保存
             const eventParam = interaction.options.getString('イベント名') || '';
             const waitDays = interaction.options.getInteger('分配待期期間') || 0;
             modalSessionStore.set(sessionId, { isEqual, waitDays, eventParam });
-            setTimeout(() => modalSessionStore.delete(sessionId), 10 * 60 * 1000); // 10分後に削除
+            setTimeout(() => modalSessionStore.delete(sessionId), 10 * 60 * 1000); // 10分後に自動削除
             return; 
         }
 
+        // --- 「ymir倉庫データ抽出」コマンド ---
         if (interaction.commandName === 'ymir倉庫データ抽出') {
             const modal = new ModalBuilder()
                 .setCustomId('ymirExtractModal')
@@ -156,15 +162,17 @@ client.on(Events.InteractionCreate, async interaction => {
             return; 
         }
     }
-
-    // モーダル送信（ModalSubmit）の処理
+    // --------------------------------------------------------------------------
+    // 2. モーダル送信（ModalSubmit）の処理
+    // --------------------------------------------------------------------------
     if (interaction.isModalSubmit()) {
-        // --- 1. 分配モードのモーダル処理 ---
+        
+        // === 分配モードの送信処理 ===
         if (interaction.customId.startsWith('distributeModal::')) {
             await interaction.deferReply();
 
             const customIdPieces = interaction.customId.split('::');
-            const sessionId = customIdPieces[1]; // 🛠️【修復完了】
+            const sessionId = customIdPieces[1]; // 🛠️【完全修復】
             const sessionData = modalSessionStore.get(sessionId);
 
             if (!sessionData) {
@@ -177,6 +185,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
             const eventHeader = eventParam ? eventParam + ' ' : '';
 
+            // プレイヤー名のクレンジングと分割
             const players = interaction.fields.getTextInputValue('playersInput')
                 .split(/[\n,，、]+/)
                 .map(s => s.trim())
@@ -188,6 +197,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 await interaction.editReply({ content: '❌ 有効なプレイヤーを入力してください。' });
                 return; 
             }
+
             const rawLines = itemsRawInput.split(/[\n]+/).map(s => s.trim()).filter(Boolean);
             const processedItems = [];
 
@@ -207,6 +217,7 @@ client.on(Events.InteractionCreate, async interaction => {
             const totalItemsMap = {};
             const parsedLines = [];
 
+            // アイテム行の解析
             processedItems.forEach(line => {
                 if (line === 'アイテム' || line.startsWith('≪') || line.startsWith('抽選日:') || (line.startsWith('【') && line.endsWith('】')) || line.startsWith('※') || line.startsWith('🎁') || line.startsWith('・') || line.startsWith('```')) {
                     return;
@@ -217,8 +228,8 @@ client.on(Events.InteractionCreate, async interaction => {
 
                 const matchResult = line.match(/^([\s\S]*?)(?:\t+|[\sXx\*_\[\]\t]+)([\d,]+)(?:[\s\*_\[\]]*)$/) || line.match(/^([\s\S]*?)\s+([\d,]+)$/);
                 if (matchResult) {
-                    itemName = matchResult[1].trim(); // 🛠️【修復完了】
-                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; // 🛠️【修復完了】
+                    itemName = matchResult[1].trim(); // 🛠️【完全修復】
+                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; // 🛠️【完全修復】
                 }
 
                 if (itemName) {
@@ -241,8 +252,9 @@ client.on(Events.InteractionCreate, async interaction => {
                 await interaction.editReply({ content: '❌ 有効なアイテムデータが検出されませんでした。' });
                 return;
             }
-
+            // --- 分配アルゴリズムの実行 ---
             if (isEqual) {
+                // 均等分配モード
                 itemOrderTrack.forEach(itemName => {
                     const totalAmount = totalItemsMap[itemName];
                     const perPlayerAmount = Math.floor(totalAmount / players.length);
@@ -279,6 +291,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 });
 
             } else {
+                // ランダム分配モード
                 const shuffledChunks = shuffle(parsedLines);
                 const playerRotator = shuffle(players);
 
@@ -288,6 +301,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 });
             }
 
+            // 日付テキスト生成
             const lotteryDate = new Date();
             let dateHeaderText = '抽選日: ' + lotteryDate.toLocaleDateString('ja-JP');
 
@@ -300,11 +314,13 @@ client.on(Events.InteractionCreate, async interaction => {
             let titleText = players.length === 1 
                 ? '≪' + eventHeader + 'アイテム付与結果≫'
                 : '≪' + eventHeader + (isEqual ? '均等' : 'ランダム') + '分配抽選結果≫';
+            
             const embeds = [];
             let currentEmbed = new EmbedBuilder().setTitle(titleText).setDescription(dateHeaderText).setColor(0x5865F2);
             let fieldChunkIndex = 1;
             let currentFieldText = "";
 
+            // プレイヤーごとの結果ブロックを構築
             players.forEach((p) => {
                 const displayItems = [];
                 itemOrderTrack.forEach(itemName => {
@@ -315,6 +331,8 @@ client.on(Events.InteractionCreate, async interaction => {
                 });
                 
                 const playerBlock = '**【' + p + '】**\n' + (displayItems.join('\n') || 'なし') + '\n\n';
+                
+                // Discordのフィールド制限(1024文字)対策
                 if ((currentFieldText + playerBlock).length > 950) {
                     const fieldName = '結果リスト (' + fieldChunkIndex + ')';
                     currentEmbed.addFields({ name: fieldName, value: currentFieldText.trim() });
@@ -334,6 +352,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 embeds.push(currentEmbed);
             }
 
+            // 余り当選者Embedの構築
             if (isEqual && Object.keys(remainderWinnersMap).length > 0) {
                 let remainderEmbed = new EmbedBuilder().setTitle('🎁 余りアイテムの当選者一覧').setColor(0xFAC13C);
                 let remainderText = "";
@@ -353,6 +372,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
             const responseOptions = { embeds: embeds };
 
+            // HTMLチェックシート生成と添付
             try {
                 const htmlContent = generateChecklistHtml(
                     lotteryDate,
@@ -389,7 +409,7 @@ client.on(Events.InteractionCreate, async interaction => {
             return;
         }
 
-        // --- 2. 倉庫データ抽出モードのモーダル処理 ---
+        // === 倉庫データ抽出モードの送信処理 ===
         if (interaction.customId === 'ymirExtractModal') {
             await interaction.deferReply(); 
 
@@ -411,10 +431,10 @@ client.on(Events.InteractionCreate, async interaction => {
             let addedCount = 0;
 
             while ((match = logRegex.exec(normalizedLog)) !== null) {
-                const itemName = match[1]; // 🛠️【修復完了】
-                const countStr = String(match[2]); // 🛠️【修復完了】
+                const itemName = match[1]; // 🛠️【完全修復】
+                const countStr = String(match[2]); // 🛠️【完全修復】
                 const countNum = parseInt(countStr.replace(/,/g, ''), 10) || 1;
-                let rawLocation = match[3].trim(); // 🛠️【修復完了】
+                let rawLocation = match[3].trim(); // 🛠️【完全修復】
 
                 if (rawLocation.includes('-')) {
                     const idx = rawLocation.indexOf('-');
@@ -424,8 +444,8 @@ client.on(Events.InteractionCreate, async interaction => {
                 }
                 const locationName = rawLocation;
 
-                const datePart = match[4]; // 🛠️【修復完了】     
-                const hourPart = match[5]; // 🛠️【修復完了】     
+                const datePart = match[4]; // 🛠️【完全修復】     
+                const hourPart = match[5]; // 🛠️【完全修復】     
 
                 const roundedTimestamp = `${datePart} ${hourPart}:00:00 (UTC+8)`;
                 const groupKey = `${locationName}::${roundedTimestamp}`;
@@ -438,11 +458,11 @@ client.on(Events.InteractionCreate, async interaction => {
                 groupMap[groupKey].push({ name: itemName, count: countNum });
                 addedCount++;
             }
+
             if (addedCount === 0) {
                 await interaction.editReply({ content: '❌ 有効な倉庫ログデータが検出されませんでした。フォーマットを確認するか、貼り付け位置が正しいか確かめてください。' });
                 return;
             }
-
             const today = new Date();
             const dateText = `確認日: ${today.toLocaleDateString('ja-JP')}`;
 
@@ -487,6 +507,7 @@ client.on(Events.InteractionCreate, async interaction => {
                     const fieldName = `📍 ${location}${isSplit ? ` (${pageNum} / ${totalPages} ページ)` : ''}\n🕒 ${timestamp}`;
                     const fieldValue = `\`\`\`\n${lines.join('\n')}\n\`\`\``;
 
+                    // Discordの各種サイズ制限対策(合計5000文字、20フィールドで分割)
                     if (currentFieldCount >= 20 || (extractEmbedSize + fieldName.length + fieldValue.length) > 5000) {
                         extractEmbeds.push(currentExtractEmbed);
                         currentExtractEmbed = new EmbedBuilder().setTitle(baseTitle).setColor(0x5865F2);
@@ -502,6 +523,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
             extractEmbeds.push(currentExtractEmbed);
 
+            // ページ番号をタイトルに付与
             const totalExtractPages = extractEmbeds.length;
             extractEmbeds.forEach((emb, index) => {
                 if (index === 0) {
@@ -511,8 +533,10 @@ client.on(Events.InteractionCreate, async interaction => {
                 }
             });
 
+            // 最初の10個のEmbedを送信
             await interaction.editReply({ embeds: extractEmbeds.slice(0, 10) });
 
+            // 10個を超える巨大データの場合は制限を避けるためにウェイトを挟んでfollowUp送信
             if (totalExtractPages > 10) { 
                 const remainingExtract = extractEmbeds.slice(10);
                 for (const remainEmb of remainingExtract) {
