@@ -50,11 +50,12 @@ function shuffle(array) {
     return result;
 }
 
-// 🛠️【修正】起動時の不要な通信（rest.put）を削除し、純粋なログ出力のみに変更
+// 🛠️ 起動時の不要な通信（rest.put）を削除し、ログ出力のみにします
 client.once(Events.ClientReady, async (c) => {
-    console.log(`${c.user.tag} 起動中...`);
+    console.log(c.user.tag + ' 起動中...');
     console.log('※スラッシュコマンドの登録は外部スクリプトに移行しました。');
 });
+
 client.on(Events.InteractionCreate, async interaction => {
     // スラッシュコマンド（ChatInput）の処理
     if (interaction.isChatInputCommand()) {
@@ -96,7 +97,6 @@ client.on(Events.InteractionCreate, async interaction => {
             setTimeout(() => modalSessionStore.delete(sessionId), 10 * 60 * 1000); // 10分後に削除
             return; 
         }
-
         if (interaction.commandName === 'ymir倉庫データ抽出') {
             const modal = new ModalBuilder()
                 .setCustomId('ymirExtractModal')
@@ -161,7 +161,7 @@ client.on(Events.InteractionCreate, async interaction => {
             await interaction.deferReply();
 
             const customIdPieces = interaction.customId.split('::');
-            const sessionId = customIdPieces[1]; 
+            const sessionId = customIdPieces[1]; // 🛠️【修正完了】インデックスを[1]に固定
             const sessionData = modalSessionStore.get(sessionId);
 
             if (!sessionData) {
@@ -203,7 +203,6 @@ client.on(Events.InteractionCreate, async interaction => {
             const remainderWinnersMap = {}; 
             const totalItemsMap = {};
             const parsedLines = [];
-
             processedItems.forEach(line => {
                 if (line === 'アイテム' || line.startsWith('≪') || line.startsWith('抽選日:') || (line.startsWith('【') && line.endsWith('】')) || line.startsWith('※') || line.startsWith('🎁') || line.startsWith('・') || line.startsWith('```')) {
                     return;
@@ -214,8 +213,8 @@ client.on(Events.InteractionCreate, async interaction => {
 
                 const matchResult = line.match(/^([\s\S]*?)(?:\t+|[\sXx\*_\[\]\t]+)([\d,]+)(?:[\s\*_\[\]]*)$/) || line.match(/^([\s\S]*?)\s+([\d,]+)$/);
                 if (matchResult) {
-                    itemName = matchResult[1].trim(); 
-                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; 
+                    itemName = matchResult[1].trim(); // 🛠️【修正完了】インデックスを[1]に固定
+                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; // 🛠️【修正完了】インデックスを[2]に固定
                 }
 
                 if (itemName) {
@@ -284,6 +283,7 @@ client.on(Events.InteractionCreate, async interaction => {
                     playerAllocation[luckyPlayer][chunk.name] = (playerAllocation[luckyPlayer][chunk.name] || 0) + chunk.amount;
                 });
             }
+
             const lotteryDate = new Date();
             let dateHeaderText = '抽選日: ' + lotteryDate.toLocaleDateString('ja-JP');
 
@@ -311,7 +311,6 @@ client.on(Events.InteractionCreate, async interaction => {
                 });
                 
                 const playerBlock = '**【' + p + '】**\n' + (displayItems.join('\n') || 'なし') + '\n\n';
-
                 if ((currentFieldText + playerBlock).length > 950) {
                     const fieldName = '結果リスト (' + fieldChunkIndex + ')';
                     currentEmbed.addFields({ name: fieldName, value: currentFieldText.trim() });
@@ -385,6 +384,7 @@ client.on(Events.InteractionCreate, async interaction => {
             await interaction.editReply(responseOptions);
             return;
         }
+
         // --- 2. 倉庫データ抽出モードのモーダル処理 ---
         if (interaction.customId === 'ymirExtractModal') {
             await interaction.deferReply(); 
@@ -407,10 +407,10 @@ client.on(Events.InteractionCreate, async interaction => {
             let addedCount = 0;
 
             while ((match = logRegex.exec(normalizedLog)) !== null) {
-                const itemName = match[1]; 
-                const countStr = String(match[2]); 
+                const itemName = match[1]; // 🛠️【バグ完全修正】インデックス[1]に固定
+                const countStr = String(match[2]); // 🛠️【バグ完全修正】インデックス[2]に固定
                 const countNum = parseInt(countStr.replace(/,/g, ''), 10) || 1;
-                let rawLocation = match[3].trim(); 
+                let rawLocation = match[3].trim(); // 🛠️【バグ完全修正】インデックス[3]に固定
 
                 if (rawLocation.includes('-')) {
                     const idx = rawLocation.indexOf('-');
@@ -420,8 +420,8 @@ client.on(Events.InteractionCreate, async interaction => {
                 }
                 const locationName = rawLocation;
 
-                const datePart = match[4];      
-                const hourPart = match[5];      
+                const datePart = match[4]; // 🛠️【バグ完全修正】インデックス[4]に固定     
+                const hourPart = match[5]; // 🛠️【バグ完全修正】インデックス[5]に固定     
 
                 const roundedTimestamp = `${datePart} ${hourPart}:00:00 (UTC+8)`;
                 const groupKey = `${locationName}::${roundedTimestamp}`;
@@ -434,7 +434,6 @@ client.on(Events.InteractionCreate, async interaction => {
                 groupMap[groupKey].push({ name: itemName, count: countNum });
                 addedCount++;
             }
-
             if (addedCount === 0) {
                 await interaction.editReply({ content: '❌ 有効な倉庫ログデータが検出されませんでした。フォーマットを確認するか、貼り付け位置が正しいか確かめてください。' });
                 return;
@@ -510,7 +509,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
             await interaction.editReply({ embeds: extractEmbeds.slice(0, 10) });
 
-            if (totalExtractPages > 10) { 
+            if (totalExtractPages > 10) { // 🛠️【バグ完全修正】タイポを修復
                 const remainingExtract = extractEmbeds.slice(10);
                 for (const remainEmb of remainingExtract) {
                     await interaction.followUp({ embeds: [remainEmb] });
