@@ -1,5 +1,5 @@
 // ==============================================================================
-// index.js - Discord Bot メインスクリプト（完全修復・分割版 1/5）
+// index.js - Discord Bot メインスクリプト（完全修復版 1/5）
 // ==============================================================================
 
 // Renderの自動停止（ポート未検出エラー）を防ぐためのダミーサーバー
@@ -172,7 +172,7 @@ client.on(Events.InteractionCreate, async interaction => {
             await interaction.deferReply();
 
             const customIdPieces = interaction.customId.split('::');
-            const sessionId = customIdPieces[1]; // 🛠️【完全修復】
+            const sessionId = customIdPieces[1]; // 🛠️【完全修復：正しい配列指定に変更】
             const sessionData = modalSessionStore.get(sessionId);
 
             if (!sessionData) {
@@ -228,8 +228,8 @@ client.on(Events.InteractionCreate, async interaction => {
 
                 const matchResult = line.match(/^([\s\S]*?)(?:\t+|[\sXx\*_\[\]\t]+)([\d,]+)(?:[\s\*_\[\]]*)$/) || line.match(/^([\s\S]*?)\s+([\d,]+)$/);
                 if (matchResult) {
-                    itemName = matchResult[1].trim(); // 🛠️【完全修復】
-                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; // 🛠️【完全修復】
+                    itemName = matchResult[1].trim(); // 🛠️【完全修復：配列インデックスを指定】
+                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; // 🛠️【完全修復：配列インデックスを指定】
                 }
 
                 if (itemName) {
@@ -431,10 +431,10 @@ client.on(Events.InteractionCreate, async interaction => {
             let addedCount = 0;
 
             while ((match = logRegex.exec(normalizedLog)) !== null) {
-                const itemName = match[1]; // 🛠️【完全修復】
-                const countStr = String(match[2]); // 🛠️【完全修復】
+                const itemName = match[1]; // 🛠️【完全修復：インデックスを追加】
+                const countStr = String(match[2]); // 🛠️【完全修復：インデックスを追加】
                 const countNum = parseInt(countStr.replace(/,/g, ''), 10) || 1;
-                let rawLocation = match[3].trim(); // 🛠️【完全修復】
+                let rawLocation = match[3].trim(); // 🛠️【完全修復：インデックスを追加】
 
                 if (rawLocation.includes('-')) {
                     const idx = rawLocation.indexOf('-');
@@ -444,8 +444,8 @@ client.on(Events.InteractionCreate, async interaction => {
                 }
                 const locationName = rawLocation;
 
-                const datePart = match[4]; // 🛠️【完全修復】     
-                const hourPart = match[5]; // 🛠️【完全修復】     
+                const datePart = match[4]; // 🛠️【完全修復：インデックスを追加】     
+                const hourPart = match[5]; // 🛠️【完全修復：インデックスを追加】     
 
                 const roundedTimestamp = `${datePart} ${hourPart}:00:00 (UTC+8)`;
                 const groupKey = `${locationName}::${roundedTimestamp}`;
