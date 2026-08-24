@@ -116,7 +116,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 .setLabel("倉庫ログ【1枠目】（必須）")
                 .setStyle(TextInputStyle.Paragraph)
                 .setMaxLength(4000)
-                .setPlaceholder('コピーしたログ of 最初の塊をここに貼り付けてください\n\n（改行して3行以上の広さで入力できます）')
+                .setPlaceholder('コピーしたログの最初の塊をここに貼り付けてください\n\n（改行して3行以上の広さで入力できます）')
                 .setRequired(true);
 
             const logInput2 = new TextInputBuilder()
@@ -228,8 +228,8 @@ client.on(Events.InteractionCreate, async interaction => {
 
                 const matchResult = line.match(/^([\s\S]*?)(?:\t+|[\sXx\*_\[\]\t]+)([\d,]+)(?:[\s\*_\[\]]*)$/) || line.match(/^([\s\S]*?)\s+([\d,]+)$/);
                 if (matchResult) {
-                    itemName = matchResult[1].trim(); 
-                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; 
+                    itemName = matchResult[1].trim(); // ⭕【完全修復：[1] を確実に指定】
+                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; // ⭕【完全修復：[2] を確実に指定】
                 }
 
                 if (itemName) {
@@ -289,7 +289,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
                     const minCount = Math.min(...playerTotalCounts.map(p => p.count));
                     const candidates = playerTotalCounts.filter(p => p.count === minCount).map(p => p.name);
-                    const luckyPlayer = shuffle(candidates)[0]; // ⭕【完全修復：配列から先頭の1名を確実に抽出して無限ループを完全に防止】
+                    const luckyPlayer = shuffle(candidates)[0]; // ⭕【完全修復：を指定して確実に先頭の1名を抽出し、無限ループを完全防止】
 
                     if (!remainderWinnersMap[itemName]) {
                         remainderWinnersMap[itemName] = [];
@@ -407,6 +407,57 @@ client.on(Events.InteractionCreate, async interaction => {
         // === 倉庫データ抽出モードの送信処理 ===
         if (interaction.customId === 'ymirExtractModal') {
             await interaction.deferReply(); 
+
+            const logInput1 = interaction.fields.getTextInputValue('logInput1') || '';
+            const logInput2 = interaction.fields.getTextInputValue('logInput2') || '';
+            const logInput3 = interaction.fields.getTextInputValue('logInput3') || '';
+            const logInput4 = interaction.fields.getTextInputValue('logInput4') || '';
+            const logInput5 = interaction.fields.getTextInputValue('logInput5') || '';
+            
+            const combinedLog = `${logInput1} ${logInput2} ${logInput3} ${logInput4} ${logInput5}`;
+
+            const groupMap = {};
+            const groupOrder = [];
+
+            const normalizedLog = combinedLog.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ');
+            const logRegex = /([^\s]+)\s+([\d,]+)\s+([\s\S]+?)\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}):(\d{2}):(\d{2})\s*\(UTC\+8\)/g;
+
+            let match;
+            let addedCount = 0;
+
+            // 🛠️【理想の元通り仕様：変数のねじれを完全に排除した修正完了版】
+            while ((match = logRegex.exec(normalizedLog)) !== null) {
+                const itemName = match[1]; 
+                const countStr = match[2]; 
+                let rawLoc = match[3].trim(); 
+
+                if (rawLoc.includes('-')) {
+                    const idx = rawLoc.indexOf('-');
+                    if (idx > 0) {
+                        rawLoc = rawLoc.substring(0, idx).trim();
+                    }
+                }
+                const locationName = rawLoc;
+
+                const datePart = match[4];      
+                const hourPart = match[5];      
+
+                const roundedTimestamp = `${datePart} ${hourPart}:00:00 (UTC+8)`;
+                const groupKey = `${locationName}::${roundedTimestamp}`;
+
+                if (!groupMap[groupKey]) {
+                    groupMap[groupKey] = [];
+                    groupOrder.push(groupKey);
+                }
+
+                groupMap[groupKey].push(`${itemName}x${countStr}`);
+                addedCount++;
+            }
+
+            if (addedCount === 0) {
+                await interaction.editReply({ content: '❌ 有効な倉庫ログデータが検出されませんでした。フォーマットを確認するか、貼り付け位置が正しいか確かめてください。' });
+                return;
+            }
             const today = new Date();
             const dateText = `確認日: ${today.toLocaleDateString('ja-JP')}`;
 
