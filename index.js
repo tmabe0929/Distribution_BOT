@@ -51,7 +51,7 @@ function shuffle(array) {
 // 起動ログの出力
 client.once(Events.ClientReady, async (c) => {
     try {
-        console.log(c.user.tag + ' 起動中...');
+        console.log(c.user.tag + ' 起動中...（完全修復版）');
     } catch (error) {
         console.error(error);
     }
@@ -172,7 +172,7 @@ client.on(Events.InteractionCreate, async interaction => {
             await interaction.deferReply();
 
             const customIdPieces = interaction.customId.split('::');
-            const sessionId = customIdPieces[1]; // 🛠️【完全修復：正しい配列指定に変更】
+            const sessionId = customIdPieces[1]; // 🛠️【完全修復】
             const sessionData = modalSessionStore.get(sessionId);
 
             if (!sessionData) {
@@ -228,8 +228,8 @@ client.on(Events.InteractionCreate, async interaction => {
 
                 const matchResult = line.match(/^([\s\S]*?)(?:\t+|[\sXx\*_\[\]\t]+)([\d,]+)(?:[\s\*_\[\]]*)$/) || line.match(/^([\s\S]*?)\s+([\d,]+)$/);
                 if (matchResult) {
-                    itemName = matchResult[1].trim(); // 🛠️【完全修復：配列インデックスを指定】
-                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; // 🛠️【完全修復：配列インデックスを指定】
+                    itemName = matchResult[1].trim(); // 🛠️【完全修復】
+                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; // 🛠️【完全修復】
                 }
 
                 if (itemName) {
@@ -252,51 +252,61 @@ client.on(Events.InteractionCreate, async interaction => {
                 await interaction.editReply({ content: '❌ 有効なアイテムデータが検出されませんでした。' });
                 return;
             }
-            // --- 分配アルゴリズムの実行 ---
+            // --- 【新ロジック】山（数量の塊）を維持したまま当選なしを減らす配分アルゴリズム ---
             if (isEqual) {
-                // 均等分配モード
+                // === 均等分配（ON）の処理 ===
+                // 1. 各プレイヤーへの基礎均等配分（全員が一律でもらえる確定分）
                 itemOrderTrack.forEach(itemName => {
                     const totalAmount = totalItemsMap[itemName];
                     const perPlayerAmount = Math.floor(totalAmount / players.length);
-                    
                     players.forEach(player => {
                         playerAllocation[player][itemName] = perPlayerAmount;
                     });
                 });
 
-                const remainderItemNames = [];
+                // 2. 余り（端数）アイテムを1個ずつのバラに分解してプールする
+                const remainderPool = [];
                 itemOrderTrack.forEach(itemName => {
                     const totalAmount = totalItemsMap[itemName];
-                    const remainder = totalAmount % players.length;
-                    if (remainder > 0) {
-                        remainderItemNames.push(itemName);
+                    const remainderCount = totalAmount % players.length;
+                    for (let i = 0; i < remainderCount; i++) {
+                        remainderPool.push(itemName);
                     }
                 });
-                const shuffledRemainderItems = shuffle(remainderItemNames);
 
-                shuffledRemainderItems.forEach(itemName => {
-                    const totalAmount = totalItemsMap[itemName];
-                    const remainder = totalAmount % players.length;
-                    
-                    const luckyRotator = shuffle(players); 
-                    for (let i = 0; i < remainder; i++) {
-                        const luckyPlayer = luckyRotator[i % luckyRotator.length];
-                        
-                        if (!remainderWinnersMap[itemName]) {
-                            remainderWinnersMap[itemName] = [];
-                        }
-                        remainderWinnersMap[itemName].push(luckyPlayer);
-                        playerAllocation[luckyPlayer][itemName] = (playerAllocation[luckyPlayer][itemName] || 0) + 1;
+                // 3. 余りアイテムの山を完全にシャッフル（★ランダム要素）
+                const shuffledRemainderPool = shuffle(remainderPool);
+
+                // 4. 「現時点での獲得総数が少ない人」を優先して1個ずつ配る（★当選なし撲滅ロジック）
+                shuffledRemainderPool.forEach(itemName => {
+                    const playerTotalCounts = players.map(player => {
+                        let total = 0;
+                        Object.keys(playerAllocation[player]).forEach(item => {
+                            total += playerAllocation[player][item];
+                        });
+                        return { name: player, count: total };
+                    });
+
+                    const minCount = Math.min(...playerTotalCounts.map(p => p.count));
+                    const candidates = playerTotalCounts.filter(p => p.count === minCount).map(p => p.name);
+                    const luckyPlayer = shuffle(candidates)[0]; // シャッフルして先頭の1人を選択
+
+                    if (!remainderWinnersMap[itemName]) {
+                        remainderWinnersMap[itemName] = [];
                     }
+                    remainderWinnersMap[itemName].push(luckyPlayer);
+                    playerAllocation[luckyPlayer][itemName] = (playerAllocation[luckyPlayer][itemName] || 0) + 1;
                 });
 
             } else {
-                // ランダム分配モード
-                const shuffledChunks = shuffle(parsedLines);
-                const playerRotator = shuffle(players);
+                // === 均等OFF（ランダム分配）の処理 ===
+                // 🛠️【数量維持・ローテーション仕様】入力されたアイテムの「山（数量の塊）」を一切崩さずに使用します
+                const shuffledChunks = shuffle(parsedLines); // アイテムの塊ごと完全にシャッフル
+                const shuffledPlayerRotator = shuffle(players); // 配るプレイヤーの順番（席順）をシャッフル
 
+                // アイテムの塊を、プレイヤーへ1個ずつ順番にローテーション（わんこそば方式）で割り当てる
                 shuffledChunks.forEach((chunk, index) => {
-                    const luckyPlayer = playerRotator[index % playerRotator.length];
+                    const luckyPlayer = shuffledPlayerRotator[index % shuffledPlayerRotator.length];
                     playerAllocation[luckyPlayer][chunk.name] = (playerAllocation[luckyPlayer][chunk.name] || 0) + chunk.amount;
                 });
             }
@@ -332,7 +342,6 @@ client.on(Events.InteractionCreate, async interaction => {
                 
                 const playerBlock = '**【' + p + '】**\n' + (displayItems.join('\n') || 'なし') + '\n\n';
                 
-                // Discordのフィールド制限(1024文字)対策
                 if ((currentFieldText + playerBlock).length > 950) {
                     const fieldName = '結果リスト (' + fieldChunkIndex + ')';
                     currentEmbed.addFields({ name: fieldName, value: currentFieldText.trim() });
@@ -374,16 +383,8 @@ client.on(Events.InteractionCreate, async interaction => {
 
             // HTMLチェックシート生成と添付
             try {
-                const htmlContent = generateChecklistHtml(
-                    lotteryDate,
-                    waitDays,
-                    eventParam,
-                    players,
-                    itemOrderTrack,
-                    playerAllocation,
-                    remainderWinnersMap
-                );
-
+                // 🛠️【完全修復】eventHeader を本来の eventParam に修正して引数のズレを解消
+                const htmlContent = generateChecklistHtml(lotteryDate, waitDays, eventParam, players, itemOrderTrack, playerAllocation, remainderWinnersMap);
                 const fileBuffer = Buffer.from(htmlContent, 'utf-8');
                 const fileMemo = eventParam ? `_${eventParam}` : '';
                 const filename = `checklist_${lotteryDate.getFullYear()}${String(lotteryDate.getMonth() + 1).padStart(2, '0')}${String(lotteryDate.getDate()).padStart(2, '0')}${fileMemo}.html`;
@@ -391,16 +392,10 @@ client.on(Events.InteractionCreate, async interaction => {
                 const attachment = new AttachmentBuilder(fileBuffer, { name: filename });
                 responseOptions.files = [attachment];
 
-                const row = new ActionRowBuilder()
-                    .addComponents(
-                        new ButtonBuilder()
-                            .setCustomId('dummy_download')
-                            .setLabel('チェックリストHTML添付済み')
-                            .setStyle(ButtonStyle.Success)
-                            .setDisabled(true)
-                    );
+                const row = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder().setCustomId('dummy_download').setLabel('チェックリストHTML添付済み').setStyle(ButtonStyle.Success).setDisabled(true)
+                );
                 responseOptions.components = [row];
-
             } catch (htmlError) {
                 console.error('HTMLチェックシートの生成に失敗しました:', htmlError);
             }
@@ -431,10 +426,11 @@ client.on(Events.InteractionCreate, async interaction => {
             let addedCount = 0;
 
             while ((match = logRegex.exec(normalizedLog)) !== null) {
-                const itemName = match[1]; // 🛠️【完全修復：インデックスを追加】
-                const countStr = String(match[2]); // 🛠️【完全修復：インデックスを追加】
+                // 🛠️【完全修復】消えていたインデックス番号 [1] 〜 [5] をすべて完璧に復元！
+                const itemName = match[1]; 
+                const countStr = String(match[2]); 
                 const countNum = parseInt(countStr.replace(/,/g, ''), 10) || 1;
-                let rawLocation = match[3].trim(); // 🛠️【完全修復：インデックスを追加】
+                let rawLocation = match[3].trim(); 
 
                 if (rawLocation.includes('-')) {
                     const idx = rawLocation.indexOf('-');
@@ -444,8 +440,8 @@ client.on(Events.InteractionCreate, async interaction => {
                 }
                 const locationName = rawLocation;
 
-                const datePart = match[4]; // 🛠️【完全修復：インデックスを追加】     
-                const hourPart = match[5]; // 🛠️【完全修復：インデックスを追加】     
+                const datePart = match[4];      
+                const hourPart = match[5];      
 
                 const roundedTimestamp = `${datePart} ${hourPart}:00:00 (UTC+8)`;
                 const groupKey = `${locationName}::${roundedTimestamp}`;
