@@ -172,7 +172,7 @@ client.on(Events.InteractionCreate, async interaction => {
             await interaction.deferReply();
 
             const customIdPieces = interaction.customId.split('::');
-            const sessionId = customIdPieces[1]; // 🛠️【完全固定・インデックス番号[1]を指定】
+            const sessionId = customIdPieces[1]; // 🛠️【完全固定・インデックス番号を指定】
             const sessionData = modalSessionStore.get(sessionId);
 
             if (!sessionData) {
@@ -228,8 +228,8 @@ client.on(Events.InteractionCreate, async interaction => {
 
                 const matchResult = line.match(/^([\s\S]*?)(?:\t+|[\sXx\*_\[\]\t]+)([\d,]+)(?:[\s\*_\[\]]*)$/) || line.match(/^([\s\S]*?)\s+([\d,]+)$/);
                 if (matchResult) {
-                    itemName = matchResult[1].trim(); // 🛠️【完全固定・インデックス番号[1]を指定】
-                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; // 🛠️【完全固定・インデックス番号[2]を指定】
+                    itemName = matchResult[1].trim(); // 🛠️【完全固定・インデックス番号を指定】
+                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; // 🛠️【完全固定・インデックス番号を指定】
                 }
 
                 if (itemName) {
@@ -289,7 +289,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
                     const minCount = Math.min(...playerTotalCounts.map(p => p.count));
                     const candidates = playerTotalCounts.filter(p => p.count === minCount).map(p => p.name);
-                    const luckyPlayer = shuffle(candidates); // シャッフルして先頭の1人を選択
+                    const luckyPlayer = shuffle(candidates)[0]; // 🛠️【完全修復：配列の先頭の1人を確実に抽出して無限ループを完全に防止】
 
                     if (!remainderWinnersMap[itemName]) {
                         remainderWinnersMap[itemName] = [];
@@ -407,7 +407,6 @@ client.on(Events.InteractionCreate, async interaction => {
         // === 倉庫データ抽出モードの送信処理 ===
         if (interaction.customId === 'ymirExtractModal') {
             await interaction.deferReply(); 
-
             const logInput1 = interaction.fields.getTextInputValue('logInput1') || '';
             const logInput2 = interaction.fields.getTextInputValue('logInput2') || '';
             const logInput3 = interaction.fields.getTextInputValue('logInput3') || '';
@@ -459,6 +458,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 await interaction.editReply({ content: '❌ 有効な倉庫ログデータが検出されませんでした。フォーマットを確認するか、貼り付け位置が正しいか確かめてください。' });
                 return;
             }
+
             const today = new Date();
             const dateText = `確認日: ${today.toLocaleDateString('ja-JP')}`;
 
@@ -512,7 +512,7 @@ client.on(Events.InteractionCreate, async interaction => {
                     }
 
                     currentExtractEmbed.addFields({ name: fieldName, value: fieldValue });
-                    extractEmbedSize += fieldName.length + fieldValue.length;
+                    extractExtractSize = extractEmbedSize + fieldName.length + fieldValue.length;
                     currentFieldCount++;
                 });
             });
