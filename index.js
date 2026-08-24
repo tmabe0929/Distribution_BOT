@@ -50,12 +50,14 @@ function shuffle(array) {
     return result;
 }
 
-// 🛠️ 起動時の不要な通信（rest.put）を削除し、ログ出力のみにします
+// 🛠️【完全修復】元々のコードと1文字も変えずに起動ログを出力します
 client.once(Events.ClientReady, async (c) => {
-    console.log(c.user.tag + ' 起動中...');
-    console.log('※スラッシュコマンドの登録は外部スクリプトに移行しました。');
+    try {
+        console.log(c.user.tag + ' 起動中...');
+    } catch (error) {
+        console.error(error);
+    }
 });
-
 client.on(Events.InteractionCreate, async interaction => {
     // スラッシュコマンド（ChatInput）の処理
     if (interaction.isChatInputCommand()) {
@@ -97,6 +99,7 @@ client.on(Events.InteractionCreate, async interaction => {
             setTimeout(() => modalSessionStore.delete(sessionId), 10 * 60 * 1000); // 10分後に削除
             return; 
         }
+
         if (interaction.commandName === 'ymir倉庫データ抽出') {
             const modal = new ModalBuilder()
                 .setCustomId('ymirExtractModal')
@@ -161,7 +164,7 @@ client.on(Events.InteractionCreate, async interaction => {
             await interaction.deferReply();
 
             const customIdPieces = interaction.customId.split('::');
-            const sessionId = customIdPieces[1]; // 🛠️【修正完了】インデックスを[1]に固定
+            const sessionId = customIdPieces[1]; // 🛠️【修復完了】
             const sessionData = modalSessionStore.get(sessionId);
 
             if (!sessionData) {
@@ -203,6 +206,7 @@ client.on(Events.InteractionCreate, async interaction => {
             const remainderWinnersMap = {}; 
             const totalItemsMap = {};
             const parsedLines = [];
+
             processedItems.forEach(line => {
                 if (line === 'アイテム' || line.startsWith('≪') || line.startsWith('抽選日:') || (line.startsWith('【') && line.endsWith('】')) || line.startsWith('※') || line.startsWith('🎁') || line.startsWith('・') || line.startsWith('```')) {
                     return;
@@ -213,8 +217,8 @@ client.on(Events.InteractionCreate, async interaction => {
 
                 const matchResult = line.match(/^([\s\S]*?)(?:\t+|[\sXx\*_\[\]\t]+)([\d,]+)(?:[\s\*_\[\]]*)$/) || line.match(/^([\s\S]*?)\s+([\d,]+)$/);
                 if (matchResult) {
-                    itemName = matchResult[1].trim(); // 🛠️【修正完了】インデックスを[1]に固定
-                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; // 🛠️【修正完了】インデックスを[2]に固定
+                    itemName = matchResult[1].trim(); // 🛠️【修復完了】
+                    amount = parseInt(matchResult[2].replace(/,/g, ''), 10) || 1; // 🛠️【修復完了】
                 }
 
                 if (itemName) {
@@ -407,10 +411,10 @@ client.on(Events.InteractionCreate, async interaction => {
             let addedCount = 0;
 
             while ((match = logRegex.exec(normalizedLog)) !== null) {
-                const itemName = match[1]; // 🛠️【バグ完全修正】インデックス[1]に固定
-                const countStr = String(match[2]); // 🛠️【バグ完全修正】インデックス[2]に固定
+                const itemName = match[1]; // 🛠️【修復完了】
+                const countStr = String(match[2]); // 🛠️【修復完了】
                 const countNum = parseInt(countStr.replace(/,/g, ''), 10) || 1;
-                let rawLocation = match[3].trim(); // 🛠️【バグ完全修正】インデックス[3]に固定
+                let rawLocation = match[3].trim(); // 🛠️【修復完了】
 
                 if (rawLocation.includes('-')) {
                     const idx = rawLocation.indexOf('-');
@@ -420,8 +424,8 @@ client.on(Events.InteractionCreate, async interaction => {
                 }
                 const locationName = rawLocation;
 
-                const datePart = match[4]; // 🛠️【バグ完全修正】インデックス[4]に固定     
-                const hourPart = match[5]; // 🛠️【バグ完全修正】インデックス[5]に固定     
+                const datePart = match[4]; // 🛠️【修復完了】     
+                const hourPart = match[5]; // 🛠️【修復完了】     
 
                 const roundedTimestamp = `${datePart} ${hourPart}:00:00 (UTC+8)`;
                 const groupKey = `${locationName}::${roundedTimestamp}`;
@@ -509,7 +513,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
             await interaction.editReply({ embeds: extractEmbeds.slice(0, 10) });
 
-            if (totalExtractPages > 10) { // 🛠️【バグ完全修正】タイポを修復
+            if (totalExtractPages > 10) { 
                 const remainingExtract = extractEmbeds.slice(10);
                 for (const remainEmb of remainingExtract) {
                     await interaction.followUp({ embeds: [remainEmb] });
