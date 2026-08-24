@@ -380,13 +380,15 @@ client.on(Events.InteractionCreate, async interaction => {
             }
 
             // 🛠️【完全最終修復】説明文を明記して、DiscordによるHTMLコードの自動プレビュー文字漏れを100%防ぎます
-            const responseOptions = { content: '📊 分配結果チェックリストHTMLを生成しました。', embeds: embeds };
+            const responseOptions = { content: '📊 分配結果チェックリストHTMLを添付しました。', embeds: embeds };
 
             // HTMLチェックシート生成と添付
             try {
                 const htmlContent = generateChecklistHtml(lotteryDate, waitDays, eventParam, players, itemOrderTrack, playerAllocation, remainderWinnersMap);
                 const fileBuffer = Buffer.from(htmlContent, 'utf-8');
                 const fileMemo = eventParam ? `_${eventParam}` : '';
+                
+                // 🛠️【.html に戻しました】
                 const filename = `checklist_${lotteryDate.getFullYear()}${String(lotteryDate.getMonth() + 1).padStart(2, '0')}${String(lotteryDate.getDate()).padStart(2, '0')}${fileMemo}.html`;
                 
                 const attachment = new AttachmentBuilder(fileBuffer, { name: filename });
@@ -426,10 +428,10 @@ client.on(Events.InteractionCreate, async interaction => {
 
             while ((match = logRegex.exec(normalizedLog)) !== null) {
                 // 🛠️【完全固定・修復】消え去っていた配列のインデックスを 1〜5 まで確実に指定！
-                const itemName = match[1]; 
+                const itemName = match[3]; 
                 const countStr = String(match[2]); 
                 const countNum = parseInt(countStr.replace(/,/g, ''), 10) || 1;
-                let rawLocation = match[3].trim(); 
+                let rawLocation = match[1].trim(); 
 
                 if (rawLocation.includes('-')) {
                     const idx = rawLocation.indexOf('-');
@@ -512,7 +514,7 @@ client.on(Events.InteractionCreate, async interaction => {
                     }
 
                     currentExtractEmbed.addFields({ name: fieldName, value: fieldValue });
-                    extractExtractSize = extractEmbedSize + fieldName.length + fieldValue.length;
+                    extractEmbedSize = extractEmbedSize + fieldName.length + fieldValue.length;
                     currentFieldCount++;
                 });
             });
